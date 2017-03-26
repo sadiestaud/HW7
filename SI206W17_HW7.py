@@ -8,7 +8,7 @@ import tweepy
 import twitter_info # still need this in the same directory, filled out
 
 ## Make sure to comment with:
-# Your name:
+# Your name: Sadie Staudacher
 # The names of any people you worked with for this assignment:
 
 # ******** #
@@ -16,7 +16,7 @@ import twitter_info # still need this in the same directory, filled out
 ## cached_tweepy_example.py
 ## HW5
 ## https://books.trinket.io/pfe/14-database.html and database examples from class
-## Lecture 17 notes, Lecture 18 notes
+## Lecture 19 notes, Lecture 20 notes
 # ******** #
 
 ## Instructions for this assignment can be found in this file, along with some provided structure and some provided code.
@@ -38,7 +38,8 @@ auth.set_access_token(access_token, access_token_secret)
 # Set up library to grab stuff from twitter with your authentication, and return it in a JSON format 
 api = tweepy.API(auth, parser=tweepy.parsers.JSONParser())
 
-# And we've provided the setup for your cache. But we haven't written any functions for you, so you have to be sure that any function that gets data from the internet relies on caching, just like in Project 2.
+# And we've provided the setup for your cache. But we haven't written any functions for you, 
+# so you have to be sure that any function that gets data from the internet relies on caching, just like in Project 2.
 CACHE_FNAME = "206W17_HW7_cache.json"
 try:
 	cache_file = open(CACHE_FNAME,'r')
@@ -50,17 +51,30 @@ except:
 
 ## [PART 1]
 
-# Here, define a function called get_user_tweets that accepts a specific Twitter user handle (e.g. "umsi" or "umich" or "Lin_Manuel" or "ColleenAtUMSI") and returns data that represents at least 20 tweets from that user's timeline.
+# Here, define a function called get_user_tweets that accepts a specific Twitter user handle 
+# (e.g. "umsi" or "umich" or "Lin_Manuel" or "ColleenAtUMSI") and returns data that represents 
+# at least 20 tweets from that user's timeline.
+def get_user_tweets(twitter_handle):
+	if twitter_handle in CACHE_DICTION:
+		# print("using cache\n")
+		response = CACHE_DICTION[twitter_handle]
 
-# Your function must cache data it retrieves and rely on a cache file!
-# Note that this is a lot like work you have done already in class (but, depending upon what you did previously, may not be EXACTLY the same, so be careful your code does exactly what you want here).
+	else:
+		response = api.user_timeline(twitter_handle)
+		CACHE_DICTION[twitter_handle] = response
+		# print("fetching\n")
+		cache_file = open(CACHE_FNAME, 'w')
+		cache_file.write(json.dumps(CACHE_DICTION))
+		cache_file.close()
 
+	return response
 
 
 
 
 # Write code to create/build a connection to a database: tweets.db,
-# And then load all of those tweets you got from Twitter into a database table called Tweets, with the following columns in each row:
+# And then load all of those tweets you got from Twitter into a database table called Tweets, 
+# with the following columns in each row:
 
 ## tweet_id - containing the unique id that belongs to each tweet
 ## author - containing the screen name of the user who posted the tweet (note that even for RT'd tweets, it will be the person whose timeline it is)
@@ -71,20 +85,45 @@ except:
 # Below we have provided interim outline suggestions for what to do, sequentially, in comments.
 
 # Make a connection to a new database tweets.db, and create a variable to hold the database cursor.
+conn = sqlite3.connect("tweets.db")
+cur = conn.cursor()
 
-
-# Write code to drop the Tweets table if it exists, and create the table (so you can run the program over and over), with the correct (4) column names and appropriate types for each.
+# Write code to drop the Tweets table if it exists, and create the table (so you can run the program over and over), 
+# with the correct (4) column names and appropriate types for each.
 # HINT: Remember that the time_posted column should be the TIMESTAMP data type!
+cur.execute("DROP TABLE IF EXISTS Tweets")
+
+table_spec = "CREATE TABLE IF NOT EXISTS "
+table_spec += "Tweets (tweet_id INTEGER, author TEXT, time_posted INTEGER, tweet_text TEXT, retweets INTEGER)"
+
+cur.execute(table_spec)
+# Invoke the function you defined above to get a list that represents a bunch of tweets from the UMSI timeline. 
+# Save those tweets in a variable called umsi_tweets.
+umsi_tweets = get_user_tweets("umsi")
+# print(umsi_tweets[2]['user'])
 
 
-# Invoke the function you defined above to get a list that represents a bunch of tweets from the UMSI timeline. Save those tweets in a variable called umsi_tweets.
-
-
-
-
-# Use a for loop, the cursor you defined above to execute INSERT statements, that insert the data from each of the tweets in umsi_tweets into the correct columns in each row of the Tweets database table.
+# Use a for loop, the cursor you defined above to execute INSERT statements, 
+# that insert the data from each of the tweets in umsi_tweets into the correct columns in each row of the Tweets database table.
 
 # (You should do nested data investigation on the umsi_tweets value to figure out how to pull out the data correctly!)
+tweets = []
+for tweet in umsi_tweets:
+	tweet_id = tweet['id']
+	t = tweet['user']
+	author = t['screen_name']
+	time_posted = tweet['created_at']
+	tweet_text = tweet['text']
+	retweets = tweet['retweet_count']
+	tup = (tweet_id, author, time_posted, tweet_text, retweets)
+	tweets.append(tup)
+
+statement = "INSERT INTO Tweets VALUES (?,?,?,?,?)"
+
+for t in tweets:
+	cur.execute(statement, t)
+
+conn.commit()
 
 
 
