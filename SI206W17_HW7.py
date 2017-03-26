@@ -153,7 +153,7 @@ y = "SELECT tweet_text FROM Tweets WHERE instr(tweet_text, 'RT')"
 cur.execute(y)
 y1 = cur.fetchone()
 first_rt = y1[0]
-print(first_rt)
+# print(first_rt)
 
 conn.close()
 # Finally, done with database stuff for a bit: write a line of code to close the cursor to the database.
@@ -180,6 +180,12 @@ conn.close()
 # very briefly at sets when we looked at set comprehensions last week. In a Python 3 set, which is a 
 # special data type, it's a lot like a combination of a list and a dictionary: no key-value pairs, 
 # BUT each element in a set is by definition unique. You can't have duplicates.
+
+
+def get_twitter_users(tweet):
+	# x = re.findall(r"@\w*", tweet)
+	return {name[1:] for name in re.findall(r"@\w*", tweet)}
+
 
 
 
